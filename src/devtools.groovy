@@ -10,12 +10,14 @@ layout_command_map = ['on' : 'true', 'off' : 'false']
 overdraw_command_map = ['on' : 'show',  'off' : 'false', 'deut' : 'show_deuteranomaly']
 overdraw_command_map_preKitKat = ['on' : 'true',  'off' : 'false']
 show_updates_map = ['on' : '0',  'off' : '1']
+set_date_map = ['now' : '20160605.143700', 'tomorrow' : '20160606.143700']
 
 
 command_map = ['gfx' : gfx_command_map,
                'layout' : layout_command_map,
                'overdraw' : overdraw_command_map,
-               'updates' : show_updates_map]
+               'updates' : show_updates_map,
+	       'date' : set_date_map]
 
 verbose = false
 
@@ -83,6 +85,10 @@ switch ( command ) {
         break
     case "updates":
         adbcmd = "shell service call SurfaceFlinger 1002 android.ui.ISurfaceComposer"+show_updates_map[option]
+        executeADBCommand(adbcmd)
+        break
+    case "date":
+        adbcmd = "shell date -s "+set_date_map[option]
         executeADBCommand(adbcmd)
         break
     default:
