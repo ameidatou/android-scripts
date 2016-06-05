@@ -10,14 +10,14 @@ layout_command_map = ['on' : 'true', 'off' : 'false']
 overdraw_command_map = ['on' : 'show',  'off' : 'false', 'deut' : 'show_deuteranomaly']
 overdraw_command_map_preKitKat = ['on' : 'true',  'off' : 'false']
 show_updates_map = ['on' : '0',  'off' : '1']
-set_date_map = ['now' : '20160605.143700', 'tomorrow' : '20160606.143700']
+date_offset_map = ['now' : 0, 'tomorrow' : 1]
 
 
 command_map = ['gfx' : gfx_command_map,
                'layout' : layout_command_map,
                'overdraw' : overdraw_command_map,
                'updates' : show_updates_map,
-	       'date' : set_date_map]
+	       'date' : date_offset_map]
 
 verbose = false
 
@@ -88,7 +88,7 @@ switch ( command ) {
         executeADBCommand(adbcmd)
         break
     case "date":
-        adbcmd = "shell date -s "+set_date_map[option]
+        adbcmd = "shell date -s "+getDate(date_offset_map[option])
         executeADBCommand(adbcmd)
         break
     default:
@@ -188,4 +188,11 @@ void printHelp(String additionalmessage) {
     println()
 
     System.exit(-1)
+}
+
+String getDate(int dayOffset) {
+    calendar = Calendar.getInstance()
+    calendar.add(Calendar.DAY_OF_YEAR, dayOffset)
+
+    return(calendar.format("YYYYMMdd.HHmmss"))
 }
