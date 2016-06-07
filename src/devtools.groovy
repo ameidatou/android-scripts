@@ -3,6 +3,9 @@
  * Created by dhelleberg on 24/09/14.
  * Improve command line parsing
  */
+import static java.util.Calendar.HOUR_OF_DAY
+import static java.util.Calendar.MINUTE
+import static java.util.Calendar.SECOND
 
 
 gfx_command_map = ['on' : 'visual_bars', 'off' : 'false', 'lines' : 'visual_lines']
@@ -10,14 +13,16 @@ layout_command_map = ['on' : 'true', 'off' : 'false']
 overdraw_command_map = ['on' : 'show',  'off' : 'false', 'deut' : 'show_deuteranomaly']
 overdraw_command_map_preKitKat = ['on' : 'true',  'off' : 'false']
 show_updates_map = ['on' : '0',  'off' : '1']
-date_offset_map = ['now' : 0, 'tomorrow' : 1]
+now_command_map = ['' : '']
+tomorrow_command_map = ['[hh:mm:ss]' : '']
 
 
 command_map = ['gfx' : gfx_command_map,
                'layout' : layout_command_map,
                'overdraw' : overdraw_command_map,
                'updates' : show_updates_map,
-	       'date' : date_offset_map]
+               'now' : now_command_map,
+               'tomorrow' : tomorrow_command_map]
 
 verbose = false
 
@@ -28,14 +33,20 @@ cli.with {
 def opts = cli.parse(args)
 if(!opts)
     printHelp("not provided correct option")
-if(opts.arguments().size() != 2)
-    printHelp("you need to provide two arguments: command and option")
+if(opts.arguments().size() > 2)
+    printHelp("you need to provide at max two arguments: command and option")
 if(opts.v)
     verbose = true
 
 //get args
 String command = opts.arguments().get(0)
-String option = opts.arguments().get(1)
+String option
+if (opts.arguments().size() == 2) {
+    option = opts.arguments().get(1)
+}
+
+if (verbose)
+    println "command: ${command}; option: ${option}."
 
 //get adb exec
 adbExec = getAdbPath();
@@ -69,14 +80,23 @@ if(!foundDevice) {
 def adbcmd = ""
 switch ( command ) {
     case "gfx" :
+        if (!option) {
+            printHelp("${command}: you need to provide two arguments: command and option")
+        }
         adbcmd = "shell setprop debug.hwui.profile "+gfx_command_map[option]
         executeADBCommand(adbcmd)
         break
     case "layout" :
+        if (!option) {
+            printHelp("${command}: you need to provide two arguments: command and option")
+        }
         adbcmd = "shell setprop debug.layout "+layout_command_map[option]
         executeADBCommand(adbcmd)
         break
     case "overdraw" :
+        if (!option) {
+            printHelp("${command}: you need to provide two arguments: command and option")
+        }
         //tricky, properties have changed over time
         adbcmd = "shell setprop debug.hwui.overdraw "+overdraw_command_map[option]
         executeADBCommand(adbcmd)
@@ -84,11 +104,18 @@ switch ( command ) {
         executeADBCommand(adbcmd)
         break
     case "updates":
+        if (!option) {
+            printHelp("${command}: you need to provide two arguments: command and option")
+        }
         adbcmd = "shell service call SurfaceFlinger 1002 android.ui.ISurfaceComposer"+show_updates_map[option]
         executeADBCommand(adbcmd)
         break
-    case "date":
-        adbcmd = "shell date -s "+getDate(date_offset_map[option])
+    case "now":
+        adbcmd = "shell "+cmdNow(opts.arguments())
+        executeADBCommand(adbcmd)
+        break
+    case "tomorrow":
+        adbcmd = "shell "+cmdTomorrow(opts.arguments())
         executeADBCommand(adbcmd)
         break
     default:
@@ -190,9 +217,43 @@ void printHelp(String additionalmessage) {
     System.exit(-1)
 }
 
-String getDate(int dayOffset) {
-    calendar = Calendar.getInstance()
-    calendar.add(Calendar.DAY_OF_YEAR, dayOffset)
+String cmdNow(args) {
+    /* sanitize argument list */
+    if (args.size() != 1) {
+        printHelp('now command does not accept arguments')
+    }
 
-    return(calendar.format("YYYYMMdd.HHmmss"))
+    /* construct the command string to return */
+    def now = new Date()
+    def str_now = now.format("yyyyMMdd.HHmmss")
+
+    "date -s ${str_now}"
+}
+
+String cmdTomorrow(args) {
+    def str_time
+
+    /* sanitize argument list */
+    if (args.size() > 2) {
+        printHelp('tomorrow command could accept one optional argument')
+    }
+    else if (args.size() == 2) {
+        /* get optional argument time */
+        str_time = args.get(1)
+    }
+
+    def now = new Date()
+    def tomorrow = now.next()
+
+    if (str_time) {
+        /* parse the time entered as argument */
+        def tomorrow_time = Date.parse("H:m:s", str_time)
+        tomorrow.set(hour: tomorrow_time[HOUR_OF_DAY])
+        tomorrow.set(minute: tomorrow_time[MINUTE])
+        tomorrow.set(second: tomorrow_time[SECOND])
+    }
+
+    def str_tomorrow = tomorrow.format("yyyyMMdd.HHmmss")
+
+    "date -s ${str_tomorrow}"
 }
