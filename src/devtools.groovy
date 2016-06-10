@@ -248,7 +248,7 @@ String cmdTomorrow(args) {
     if (str_time) {
         /* parse the time entered as argument */
         def tomorrow_time = Date.parse("H:m:s", str_time)
-        tomorrow.set(hour: tomorrow_time[HOUR_OF_DAY])
+        tomorrow.set(hourOfDay: tomorrow_time[HOUR_OF_DAY])
         tomorrow.set(minute: tomorrow_time[MINUTE])
         tomorrow.set(second: tomorrow_time[SECOND])
     }
